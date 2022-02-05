@@ -1,0 +1,30 @@
+name: Visualize cloudbuild job graph and commit
+on: push
+
+env:
+  SEARCH_DIRECTORIES: .  # カンマ区切り文字列で指定する
+  FILENAME_REGEX: 'cloudbuild.*.yaml'
+
+jobs:
+  format:
+    runs-on: ubuntu-20.04
+    name: Visualize cloudbuild job graph and commit
+    steps:
+      - name: checkout
+      # https://github.com/actions/checkout/releases/tag/v2.4.0 相当
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+
+      - name: Create png image for each cloudbuild.yaml
+        uses: gecko655/github-action-commit-visualized-gcb-graph@7fe91bf8f28ba5e24bcbf87410a6c1f1b6f0cd2e
+        with:
+          search-directories: '${{ env.SEARCH_DIRECTORIES }}'
+          filename-regex: '${{ env.FILENAME_REGEX }}'
+
+      - name: commit and push
+        # https://github.com/EndBug/add-and-commit/releases/tag/v7.4.0 相当
+        uses: EndBug/add-and-commit@d77762158d703e60c60cf5baa4de52697d1414a3
+        with:
+          message: "Visualize cloudbuild jobs by GitHub Action"
+          committer_name: "github-actions[bot]"
+          committer_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          push: true
