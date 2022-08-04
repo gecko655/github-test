@@ -1,0 +1,56 @@
+# あるブランチTOに、他のブランチFROMの csv/フォルダ以外の内容を上書きします。
+# ただし、ブランチTOにあってFROMにないファイルが消されることはありません。
+name: 'Update branch by other branch except csv'
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_branch:
+        required: true
+        description: マージ元のブランチ( `origin/` を含めないでください)
+      to_branch:
+        required: true
+        description: マージ先のブランチ( `origin/` を含めないでください)
+
+jobs:
+  updateBranch:
+    runs-on: ubuntu-latest
+    env:
+      WORK_DIR: durian-master-data
+    steps:
+      # https://github.com/actions/checkout/releases/tag/v2.4.0 相当
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        with:
+          fetch-depth: 0
+      - name: Update branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.DURIAN_BOT_GITHUB_TOKEN }}
+          FROM_BRANCH: ${{ github.event.inputs.from_branch }}
+          TO_BRANCH: ${{ github.event.inputs.to_branch }}
+        run: |
+          set -x
+          git fetch
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          
+          git fetch "origin/$TO_BRANCH"
+          # ブランチ移動
+          git switch "$TO_BRANCH"
+
+          # ブランチを最新にする
+          git pull
+
+          # read-treeで更新元(FROM_BRANCH)のブランチのindexを読み込みstageする
+          git read-tree "origin/$FROM_BRANCH"
+
+          # csvフォルダだけもとに戻す
+          git restore --staged csv/
+
+          # stageされた差分をコミット
+          git commit -m "update master-data except csv/ from $FROM_BRANCH to $TO_BRANCH"
+
+          # リポジトリをきれいにする
+          git clean -df . && git reset --hard
+          
+          # pushする
+          git push
