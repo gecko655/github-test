@@ -24,16 +24,18 @@ jobs:
           fetch-depth: 0
       - name: Update branch
         env:
-          GITHUB_TOKEN: ${{ secrets.DURIAN_BOT_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FROM_BRANCH: ${{ github.event.inputs.from_branch }}
           TO_BRANCH: ${{ github.event.inputs.to_branch }}
         run: |
           set -x
           git fetch
+          ls
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
+          git remote -v
           
-          git fetch "origin/$TO_BRANCH"
+          git fetch origin "$TO_BRANCH"
           # ブランチ移動
           git switch "$TO_BRANCH"
 
