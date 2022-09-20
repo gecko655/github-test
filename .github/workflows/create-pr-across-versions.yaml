@@ -66,7 +66,7 @@ jobs:
             --head "${GITHUB_REPOSITORY%/*}:${RELAY_BRANCH}" \
             --title "[自動起票] ${HEAD_BRANCH}ブランチ -> ${BASE_BRANCH}ブランチへのマージ" \
             --body "この PullRequest は GitHub Action によって自動生成されており、${HEAD_BRANCH}ブランチの変更差分を${BASE_BRANCH}ブランチへ取り込みます。"
-            --json 'number' --jq 'number' > > pr_number | tee -a
+            --json 'number' --jq 'number' > pr_number | tee -a
 
           echo "::set-output name=PR_NUMBER::$(cat pr_number)"
           echo "::set-output name=PR_STATUS::created"
