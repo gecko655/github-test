@@ -1,0 +1,80 @@
+# https://github.com/dessant/issue-states
+# 古い version/vx.x.x ブランチに更新がpushされたタイミングで、新しい version/vy.y.y ブランチにPRを作成します。
+# ただしすでにPRが存在している場合は、 `pr-across-versions` ブランチにversion/vx.x.xブランチをマージします
+name: 'Create PR across versions'
+
+on:
+  push:
+    branches:
+      - 'version/v1.0.0' # マージ元
+  workflow_dispatch:
+    inputs: {}
+
+env:
+  BASE_BRANCH: version/v1.1.0 # マージ先
+  RELAY_BRANCH: pr-across-versions
+
+jobs:
+  createPullRequest:
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/actions/checkout/releases/tag/v2.4.0 相当
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        with:
+          fetch-depth: 0
+      - name: Control Relay Branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -x
+          git fetch
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+          # RELAY_BRANCHが存在するかをチェック
+          if git branch -r | grep "^.*origin/${RELAY_BRANCH}$"; then
+            # 存在する場合はブランチに移動しマージする
+            git fetch origin ${RELAY_BRANCH}
+            git checkout ${RELAY_BRANCH}
+            git merge ${HEAD_BRANCH}
+          else
+            # 存在しない場合はブランチを作る
+            git checkout -b ${RELAY_BRANCH}
+          fi
+
+          git push origin ${RELAY_BRANCH}
+
+      - name: Check and Create PR
+        env:
+          HEAD_BRANCH: ${{ github.ref_name }}
+        id: cpr
+        run: |
+          set -x
+
+          # デバッグ用途
+          env | sort
+
+          echo "::set-output name=PR_STATUS::not_created"
+
+          # PRの一覧を取得し RELAY_BRANCH -> BASE_BRANCH のPRが存在するかをチェックし、存在する場合は正常終了する
+          [ $(gh pr list --base ${BASE_BRANCH} --head "${GITHUB_REPOSITORY%/*}:${RELAY_BRANCH}" --json 'number' --jq 'length') -gt 0 ] || exit 0
+
+          # RELAY_BRANCH->BASE_BRANCHにマージするPRを作る
+          gh pr create --base ${BASE_BRANCH} \
+            --head "${GITHUB_REPOSITORY%/*}:${RELAY_BRANCH}" \
+            --title "[自動起票] ${HEAD_BRANCH}ブランチ -> ${BASE_BRANCH}ブランチへのマージ" \
+            --body "この PullRequest は GitHub Action によって自動生成されており、${HEAD_BRANCH}ブランチの変更差分を${BASE_BRANCH}ブランチへ取り込みます。"
+            --json 'number' --jq 'number' > > pr_number | tee -a
+
+          echo "::set-output name=PR_NUMBER::$(cat pr_number)"
+          echo "::set-output name=PR_STATUS::created"
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.PR_STATUS == 'created'
+        # https://github.com/peter-evans/enable-pull-request-automerge/releases/tag/v1.1.0 相当
+        uses: peter-evans/enable-pull-request-automerge@d2ede5636b3febc92809259995e643565e675aab
+        with:
+          token: '${{ secrets.GITHUB_TOKEN }}'
+          pull-request-number: ${{ steps.cpr.outputs.PR_NUMBER }}
+          merge-method: merge
