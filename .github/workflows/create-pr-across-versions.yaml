@@ -59,7 +59,7 @@ jobs:
           echo "::set-output name=PR_STATUS::not_created"
 
           # PRの一覧を取得し RELAY_BRANCH -> BASE_BRANCH のPRが存在するかをチェックし、存在する場合は正常終了する
-          [ $(gh pr list --base ${BASE_BRANCH} --head "${GITHUB_REPOSITORY%/*}:${RELAY_BRANCH}" --json 'number' --jq 'length') -gt 0 ] || exit 0
+          [ $(gh pr list --base ${BASE_BRANCH} --head "${GITHUB_REPOSITORY%/*}:${RELAY_BRANCH}" --json 'number' --jq 'length') -eq 0 ] || exit 0
 
           # RELAY_BRANCH->BASE_BRANCHにマージするPRを作る
           gh pr create --base ${BASE_BRANCH} \
