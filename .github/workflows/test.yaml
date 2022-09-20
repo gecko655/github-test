@@ -1,0 +1,13 @@
+name: test
+
+on:
+  push:
+    branches:
+      - 'version/v1.0.0' # マージ元
+
+jobs:
+  createPullRequest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: gh version
