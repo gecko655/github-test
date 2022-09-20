@@ -48,6 +48,7 @@ jobs:
       - name: Check and Create PR
         env:
           HEAD_BRANCH: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: cpr
         run: |
           set -x
