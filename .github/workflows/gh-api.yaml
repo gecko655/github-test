@@ -1,0 +1,11 @@
+name: gh api
+
+on: push
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh api /repos/hashicorp/terraform-provider-google/releases/latest
+        env:
+          GH_TOKEN: ${{ github.token }}
